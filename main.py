@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.mnist import load_mnist, make_batch
 from src.three_layer_net import ThreeLayerNet
+from src.CNN import CNN
 from src.optimizer import *
 
 
@@ -17,8 +18,7 @@ LR = 0.01
 train_batch = make_batch(x_train, t_train, BATCHSIZE)
 test_batch = make_batch(x_test, t_test, BATCHSIZE)
 
-
-network = ThreeLayerNet(input_size=784, hidden_size=100, output_size=10)
+network = CNN(D = 32, hidden_size=100, output_size=10)
 optimizer = Adam(lr=LR)
 
 train_loss_list = []
@@ -26,7 +26,10 @@ train_acc_list = []
 test_acc_list = []
 
 for i in range(EPOCHS):
-    for x_batch, t_batch in train_batch:         
+    for x_batch, t_batch in train_batch:
+        print(x_batch.shape)
+        print(type(x_batch))
+        x_batch = x_batch.reshape(-1, 1, 28, 28)        
         grads = network.gradient(x_batch, t_batch)
         optimizer.update(network.params, grads)
 

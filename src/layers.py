@@ -9,23 +9,28 @@ class Convolutional:
         self.b = b
         self.stride = stride
         self.padding = padding
+        self.X_col = None
 
     def forward(self, x):
         n_filters, d_filter, h_filter, w_filter = self.W.shape
         n_x, d_x, h_x, w_x = x.shape
 
-        h_out = (h_x - h_filter + 2*self.padding)/self.stride + 1
-        w_out = (w_x - h_filter + 2*self.padding)/self.stride + 1
-        X_col = im2col_indices(x, h_x, w_x, stride=self.stride, padding=self.padding)
+        h_out = int((h_x - h_filter + 2*self.padding)/self.stride + 1)
+        w_out = int((w_x - h_filter + 2*self.padding)/self.stride + 1)
+
+        self.X_col = im2col_indices(x, h_filter, w_filter, stride=self.stride, padding=self.padding)
+
         W_col = self.W.reshape(n_filters, -1)
-        out = W_col * X_col + self.b
+        out = W_col @ self.X_col + self.b
         out = out.reshape(n_filters, h_out, w_out, n_x)
         out = out.transpose(3, 0, 1, 2)
-        print('Done Forward')
         return out
 
     def backward(self, dout):
-        pass
+        dW = dout @ self.X_col.T
+
+        dx = self.W.T @ dout
+
 
 class MaxPooling:
     def __init__(self):
@@ -36,6 +41,17 @@ class MaxPooling:
 
     def backward(self):
         pass
+
+class Flatten:
+    def __init__(self):
+        self.shape = None
+    def forward(self, x):
+        self.shape = x.shape
+        out = x.ravel().reshape(x.shape[0], -1)
+        return out
+    def backward(self, dout):
+        dx = dout.ravel().reshape(self.shape)
+        return dx
 
 class Relu:
     def __init__(self):
@@ -61,23 +77,15 @@ class Elu:
         self.mask = None
 
     def forward(self, x):
-        # print('a \n',x)
         self.mask = (x <= 0)
         out = x.copy()
         out[self.mask] = self.alpha * (np.exp(out[self.mask])-1)
         self.out = out
-        # print('b \n',out)
         return out
 
     def backward(self, dout):
-        # print('1 \n',dout)
-        # print(self.out.shape)
-        # print(dout[self.mask].shape)
-
-        # dout[self.mask] = dout*(self.out + self.alpha)
         np.putmask(dout, self.mask, dout*(self.out + self.alpha))
         dx = dout
-        # print('2 \n',dx)
         return dx
 
 
