@@ -1,2 +1,2 @@
 # FashionMNIST_usingNumpy
-The project that I implement NeuralNetwork mode by using Numpy.
+The project that I implement Neural Network model by using Numpy.
