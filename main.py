@@ -24,15 +24,18 @@ optimizer = Adam(lr=LR)
 train_loss_list = []
 train_acc_list = []
 test_acc_list = []
-
+print(x_train.shape)
 for i in range(EPOCHS):
     for x_batch, t_batch in train_batch:
-        print(x_batch.shape)
-        print(type(x_batch))
-        x_batch = x_batch.reshape(-1, 1, 28, 28)        
+        # print(x_batch.shape)
+        # print(type(x_batch))
+        x_batch = x_batch.reshape(-1, 1, 28, 28)   
+        # print(x_batch.shape)     
         grads = network.gradient(x_batch, t_batch)
         optimizer.update(network.params, grads)
 
+    x_train = x_train.reshape(-1, 1, 28, 28)   
+    x_test = x_test.reshape(-1, 1, 28, 28)   
     train_acc = network.accuracy(x_train, t_train)
     test_acc = network.accuracy(x_test, t_test)
     train_acc_list.append(train_acc)

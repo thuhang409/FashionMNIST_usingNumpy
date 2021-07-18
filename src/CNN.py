@@ -45,9 +45,7 @@ class CNN:
     def predict(self, x):
         for layer in self.layers.values():
             x = layer.forward(x)
-            print('x= ', x.shape)
-
-        
+            # print('x= ', x.shape)
         return x
         
     # x:input data, t:correct labels
@@ -75,7 +73,7 @@ class CNN:
         layers.reverse()
         for layer in layers:
             dout = layer.backward(dout)
-            print(layer, dout.shape)
+            # print(layer, dout.shape)
 
         grads = {}
         grads['W1'] = self.layers['Affine1'].dW

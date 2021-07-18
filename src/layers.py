@@ -9,28 +9,45 @@ class Convolutional:
         self.b = b
         self.stride = stride
         self.padding = padding
-        self.X_col = None
+        self.cache = None
+
+        self.dW = None
+        self.db = None
 
     def forward(self, x):
         n_filters, d_filter, h_filter, w_filter = self.W.shape
+        # print(x.shape)
         n_x, d_x, h_x, w_x = x.shape
 
         h_out = int((h_x - h_filter + 2*self.padding)/self.stride + 1)
         w_out = int((w_x - h_filter + 2*self.padding)/self.stride + 1)
 
-        self.X_col = im2col_indices(x, h_filter, w_filter, stride=self.stride, padding=self.padding)
+        X_col = im2col_indices(x, h_filter, w_filter, stride=self.stride, padding=self.padding)
 
         W_col = self.W.reshape(n_filters, -1)
-        out = W_col @ self.X_col + self.b
+        out = W_col @ X_col + self.b
         out = out.reshape(n_filters, h_out, w_out, n_x)
         out = out.transpose(3, 0, 1, 2)
+
+        self.cache = (X_col, x)
         return out
 
     def backward(self, dout):
-        dW = dout @ self.X_col.T
+        n_filters, d_filter, h_filter, w_filter = self.W.shape
+        X_col, x = self.cache
 
-        dx = self.W.T @ dout
+        db = np.sum(dout, axis=(0, 2, 3))
+        self.db = db.reshape(n_filters, -1)
 
+        dout_reshape = dout.transpose(1,2,3,0).reshape(n_filters, -1)
+        W_reshape = self.W.reshape(n_filters, -1)
+
+        dW = dout_reshape @ X_col.T
+        self.dW = dW.reshape(self.W.shape)
+
+        dx_col = W_reshape.T @ dout_reshape
+        dx = col2im_indices(dx_col, x.shape, h_filter, w_filter, stride=self.stride, padding=self.padding)
+        return dx
 
 class MaxPooling:
     def __init__(self):
