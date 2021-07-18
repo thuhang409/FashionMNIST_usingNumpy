@@ -18,30 +18,44 @@ LR = 0.01
 train_batch = make_batch(x_train, t_train, BATCHSIZE)
 test_batch = make_batch(x_test, t_test, BATCHSIZE)
 
-network = CNN(D = 32, hidden_size=100, output_size=10)
+network = CNN(D = 32, hidden_size=300, output_size=10)
 optimizer = Adam(lr=LR)
 
 train_loss_list = []
 train_acc_list = []
 test_acc_list = []
-print(x_train.shape)
-for i in range(EPOCHS):
-    for x_batch, t_batch in train_batch:
-        # print(x_batch.shape)
-        # print(type(x_batch))
+
+def test(network, data_batch):
+    print("testtt")
+    correct_total = 0
+    total = 0
+    for x_batch, t_batch in data_batch:
         x_batch = x_batch.reshape(-1, 1, 28, 28)   
-        # print(x_batch.shape)     
+        correct = network.accuracy(x_batch, t_batch)
+        total += x_batch.shape[0]
+        correct_total += correct
+
+    acc = correct_total/total
+    return acc
+
+for i in range(EPOCHS):
+    step =0
+    for x_batch, t_batch in train_batch:
+        if step%100==0:
+            print(step)
+        step += 1
+        x_batch = x_batch.reshape(-1, 1, 28, 28)   
         grads = network.gradient(x_batch, t_batch)
         optimizer.update(network.params, grads)
 
-    x_train = x_train.reshape(-1, 1, 28, 28)   
-    x_test = x_test.reshape(-1, 1, 28, 28)   
-    train_acc = network.accuracy(x_train, t_train)
-    test_acc = network.accuracy(x_test, t_test)
+    train_acc = test(network, train_batch)
+    test_acc = test(network, test_batch)
     train_acc_list.append(train_acc)
     test_acc_list.append(test_acc)
 
     print("epoch:" + str(i) + ", train acc:" + str(train_acc) + ", test acc:" + str(test_acc))
+
+
 
 
 # '''# Plot the dataset

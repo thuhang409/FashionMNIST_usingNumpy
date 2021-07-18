@@ -12,9 +12,9 @@ class ThreeLayerNet:
         self.params = {}
         self.params['W1'] = weight_init_std * np.random.randn(input_size, 600) / np.sqrt(2 / input_size)
         self.params['b1'] = np.zeros(600)
-        self.params['W2'] = weight_init_std * np.random.randn(600, 300) / np.sqrt(2 / hidden_size)
+        self.params['W2'] = weight_init_std * np.random.randn(600, 300) / np.sqrt(2 / 600)
         self.params['b2'] = np.zeros(300)
-        self.params['W3'] = weight_init_std * np.random.randn(300, output_size) / np.sqrt(2 / hidden_size)
+        self.params['W3'] = weight_init_std * np.random.randn(300, output_size) / np.sqrt(2 / 300)
         self.params['b3'] = np.zeros(output_size)
 
         # create layers

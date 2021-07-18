@@ -59,6 +59,16 @@ class MaxPooling:
     def backward(self):
         pass
 
+class BatchNorm:
+    def __init__(self):
+        pass
+
+    def forward(sef):
+        pass
+
+    def backward(self):
+        pass
+
 class Flatten:
     def __init__(self):
         self.shape = None

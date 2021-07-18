@@ -8,14 +8,24 @@ from collections import OrderedDict
 class CNN:
 
     def __init__(self, D, hidden_size, output_size, weight_init_std = 0.01):
-        # initiate weights and bias
+        
         self.params = {}
-        self.params['W1'] = weight_init_std * np.random.randn(D, 1, 3, 3) / np.sqrt(D / 2)
-        self.params['b1'] = np.zeros((D, 1))
-        self.params['W2'] = weight_init_std * np.random.randn(D*28*28, hidden_size) / np.sqrt(D*28*28/ 2)
+        self.params['W1'] = weight_init_std * np.random.randn(D, 1, 3, 3) / np.sqrt(2 / D)
+        self.params['b1'] = np.zeros((D,1))
+        self.params['W2'] = weight_init_std * np.random.randn(D*28*28, hidden_size) / np.sqrt(2 /D*28*28)
         self.params['b2'] = np.zeros((1, hidden_size))
-        self.params['W3'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(hidden_size / 2)
+        self.params['W3'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(2 / hidden_size)
         self.params['b3'] = np.zeros((1, output_size))
+
+
+        # initiate weights and bias
+        # self.params = {}
+        # self.params['W1'] = weight_init_std * np.random.randn(D, 1, 3, 3) / np.sqrt(D / 2)
+        # self.params['b1'] = np.zeros((D, 1))
+        # self.params['W2'] = weight_init_std * np.random.randn(D*28*28, hidden_size) / np.sqrt(D*28*28/ 2)
+        # self.params['b2'] = np.zeros((1, hidden_size))
+        # self.params['W3'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(hidden_size / 2)
+        # self.params['b3'] = np.zeros((1, output_size))
 
 
         # self.model = dict(
@@ -54,12 +64,14 @@ class CNN:
         return self.lastLayer.forward(y, t)
     
     def accuracy(self, x, t):
+        
         y = self.predict(x)
         y = np.argmax(y, axis=1)
         if t.ndim != 1 : t = np.argmax(t, axis=1)
         
-        accuracy = np.sum(y == t) / float(x.shape[0])
-        return accuracy
+        # accuracy = np.sum(y == t) / float(x.shape[0])
+        correct = np.sum(y == t) 
+        return correct
 
     def gradient(self, x, t):
         # forward
