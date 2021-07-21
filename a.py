@@ -5,43 +5,43 @@ from .layers import *
 from collections import OrderedDict
 
 
-class ThreeLayerNet:
+class CNN:
 
-    def __init__(self, input_size, hidden_size, output_size, weight_init_std = 0.01):
-        # initiate weights and bias
+    def __init__(self, D, hidden_size, output_size, weight_init_std = 0.01):
+        
         self.params = {}
-        self.params['W1'] = weight_init_std * np.random.randn(input_size, 600) / np.sqrt(2 / input_size)
-        self.params['b1'] = np.zeros(600)
-        self.params['W2'] = weight_init_std * np.random.randn(600, 300) / np.sqrt(2 / 600)
-        self.params['b2'] = np.zeros(300)
-        self.params['W3'] = weight_init_std * np.random.randn(300, 100) / np.sqrt(2 / 300)
-        self.params['b3'] = np.zeros(100)
-        self.params['W4'] = weight_init_std * np.random.randn(100, output_size) / np.sqrt(2 / 100)
-        self.params['b4'] = np.zeros(output_size)
+        self.params['W1'] = weight_init_std * np.random.randn(D, 1, 3, 3) / np.sqrt(2 / D)
+        self.params['b1'] = np.zeros((D,1))
+        self.params['gamma1'] = np.ones((1,D,1,1))
+        self.params['beta1'] = np.zeros((1,D,1,1))
+        self.params['W2'] = weight_init_std * np.random.randn(D*14*14, hidden_size) / np.sqrt(2 /D*14*14)
+        self.params['b2'] = np.zeros((1, hidden_size))
+        self.params['W3'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(2 / hidden_size)
+        self.params['b3'] = np.zeros((1, output_size))
 
+        
         # create layers
         self.layers = OrderedDict()
         # Layer 1
-        self.layers['Affine1'] = Affine(self.params['W1'], self.params['b1'])
+        self.layers['Affine1'] = Convolutional(self.params['W1'], self.params['b1'])
+        self.layers['BatchNorm1'] = BatchNorm(self.params['gamma1'], self.params['beta1'])
         self.layers['Relu1'] = Relu()
-        # self.layers['Dropout1'] = Dropout()
+        self.layers['MaxPooling'] = MaxPooling()
+
+        self.layers['Dropout1'] = Dropout()
+        self.layers['Flatten'] = Flatten()
         # Layer 2
         self.layers['Affine2'] = Affine(self.params['W2'], self.params['b2'])
         self.layers['Relu2'] = Relu()
-        # self.layers['Dropout2'] = Dropout()
-        # Layer 2
-        self.layers['Affine3'] = Affine(self.params['W3'], self.params['b3'])
-        self.layers['Relu3'] = Relu()
-        # self.layers['Dropout2'] = Dropout()
+        self.layers['Dropout2'] = Dropout()
         # Layer 3
-        self.layers['Affine4'] = Affine(self.params['W4'], self.params['b4'])
-
+        self.layers['Affine3'] = Affine(self.params['W3'], self.params['b3'])
         self.lastLayer = SoftmaxWithLoss()
         
     def predict(self, x):
         for layer in self.layers.values():
             x = layer.forward(x)
-        
+            # print(layer, x.shape)
         return x
         
     # x:input data, t:correct labels
@@ -50,12 +50,14 @@ class ThreeLayerNet:
         return self.lastLayer.forward(y, t)
     
     def accuracy(self, x, t):
+        
         y = self.predict(x)
         y = np.argmax(y, axis=1)
         if t.ndim != 1 : t = np.argmax(t, axis=1)
         
-        accuracy = np.sum(y == t) / float(x.shape[0])
-        return accuracy
+        # accuracy = np.sum(y == t) / float(x.shape[0])
+        correct = np.sum(y == t) 
+        return correct
 
     def gradient(self, x, t):
         # forward
@@ -69,15 +71,17 @@ class ThreeLayerNet:
         layers.reverse()
         for layer in layers:
             dout = layer.backward(dout)
+            # print(layer, dout.shape)
 
         grads = {}
         grads['W1'] = self.layers['Affine1'].dW
         grads['b1'] = self.layers['Affine1'].db
+        grads['gamma1'] = self.layers['BatchNorm1'].dgamma
+        grads['beta1'] = self.layers['BatchNorm1'].dbeta
         grads['W2'] = self.layers['Affine2'].dW
         grads['b2'] = self.layers['Affine2'].db
         grads['W3'] = self.layers['Affine3'].dW
         grads['b3'] = self.layers['Affine3'].db
-        grads['W4'] = self.layers['Affine4'].dW
-        grads['b4'] = self.layers['Affine4'].db
+
 
         return grads

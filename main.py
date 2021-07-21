@@ -18,7 +18,7 @@ LR = 0.01
 train_batch = make_batch(x_train, t_train, BATCHSIZE)
 test_batch = make_batch(x_test, t_test, BATCHSIZE)
 
-network = CNN(D = 32, hidden_size=300, output_size=10)
+network = CNN(D = 32, hidden_size=600, output_size=10)
 optimizer = Adam(lr=LR)
 
 train_loss_list = []
@@ -39,7 +39,7 @@ def test(network, data_batch):
     return acc
 
 for i in range(EPOCHS):
-    step =0
+    step = 0
     for x_batch, t_batch in train_batch:
         if step%100==0:
             print(step)

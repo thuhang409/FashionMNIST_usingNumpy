@@ -6,56 +6,50 @@ from collections import OrderedDict
 
 
 class CNN:
-
     def __init__(self, D, hidden_size, output_size, weight_init_std = 0.01):
         
         self.params = {}
-        self.params['W1'] = weight_init_std * np.random.randn(D, 1, 3, 3) / np.sqrt(2 / D)
-        self.params['b1'] = np.zeros((D,1))
-        self.params['W2'] = weight_init_std * np.random.randn(D*28*28, hidden_size) / np.sqrt(2 /D*28*28)
-        self.params['b2'] = np.zeros((1, hidden_size))
-        self.params['W3'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(2 / hidden_size)
-        self.params['b3'] = np.zeros((1, output_size))
+        self.params['W1'] = weight_init_std * np.random.randn(64, 1, 3, 3) / np.sqrt(2 / 64)
+        self.params['b1'] = np.zeros((64,1))
+        self.params['W2'] = weight_init_std * np.random.randn(D, 64, 3, 3) / np.sqrt(2 / D)
+        self.params['b2'] = np.zeros((D,1))
+        # self.params['gamma1'] = np.ones((1,D,1,1))
+        # self.params['beta1'] = np.zeros((1,D,1,1))
+        self.params['W3'] = weight_init_std * np.random.randn(D*14*14, hidden_size) / np.sqrt(2 /D*14*14)
+        self.params['b3'] = np.zeros((1, hidden_size))
+        self.params['W4'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(2 / hidden_size)
+        self.params['b4'] = np.zeros((1, output_size))
 
-
-        # initiate weights and bias
-        # self.params = {}
-        # self.params['W1'] = weight_init_std * np.random.randn(D, 1, 3, 3) / np.sqrt(D / 2)
-        # self.params['b1'] = np.zeros((D, 1))
-        # self.params['W2'] = weight_init_std * np.random.randn(D*28*28, hidden_size) / np.sqrt(D*28*28/ 2)
-        # self.params['b2'] = np.zeros((1, hidden_size))
-        # self.params['W3'] = weight_init_std * np.random.randn(hidden_size, output_size) / np.sqrt(hidden_size / 2)
-        # self.params['b3'] = np.zeros((1, output_size))
-
-
-        # self.model = dict(
-        #     W1=np.random.randn(D, 1, 3, 3) / np.sqrt(D / 2.),
-        #     W2=np.random.randn(D * 14 * 14, H) / np.sqrt(D * 14 * 14 / 2.),
-        #     W3=np.random.randn(H, C) / np.sqrt(H / 2.),
-        #     b1=np.zeros((D, 1)),
-        #     b2=np.zeros((1, H)),
-        #     b3=np.zeros((1, C))
-        # )
         
         # create layers
         self.layers = OrderedDict()
         # Layer 1
-        self.layers['Affine1'] = Convolutional(self.params['W1'], self.params['b1'])
-        self.layers['Relu1'] = Elu()
-        self.layers['Dropout1'] = Dropout()
+        self.layers['Convolutional1'] = Convolutional(self.params['W1'], self.params['b1'])
+        # self.layers['BatchNorm1'] = BatchNorm(self.params['gamma1'], self.params['beta1'])
+        self.layers['Relu1'] = Relu()
+        # self.layers['Dropout1'] = Dropout()
+        self.layers['MaxPooling'] = MaxPooling()
+        
+        # Layer 2
+        self.layers['Convolutional2'] = Convolutional(self.params['W2'], self.params['b2'])
+        # self.layers['BatchNorm1'] = BatchNorm(self.params['gamma1'], self.params['beta1'])
+        self.layers['Relu2'] = Relu()
+        self.layers['MaxPooling'] = MaxPooling()
+        # self.layers['Dropout2'] = Dropout()
+
         self.layers['Flatten'] = Flatten()
         # Layer 2
-        self.layers['Affine2'] = Affine(self.params['W2'], self.params['b2'])
-        self.layers['Relu2'] = Elu()
+        self.layers['Affine1'] = Affine(self.params['W3'], self.params['b3'])
+        self.layers['Relu3'] = Relu()
         self.layers['Dropout2'] = Dropout()
         # Layer 3
-        self.layers['Affine3'] = Affine(self.params['W3'], self.params['b3'])
+        self.layers['Affine2'] = Affine(self.params['W4'], self.params['b4'])
         self.lastLayer = SoftmaxWithLoss()
         
     def predict(self, x):
         for layer in self.layers.values():
             x = layer.forward(x)
-            # print('x= ', x.shape)
+            # print(layer, x.shape)
         return x
         
     # x:input data, t:correct labels
@@ -88,11 +82,16 @@ class CNN:
             # print(layer, dout.shape)
 
         grads = {}
-        grads['W1'] = self.layers['Affine1'].dW
-        grads['b1'] = self.layers['Affine1'].db
-        grads['W2'] = self.layers['Affine2'].dW
-        grads['b2'] = self.layers['Affine2'].db
-        grads['W3'] = self.layers['Affine3'].dW
-        grads['b3'] = self.layers['Affine3'].db
+        grads['W1'] = self.layers['Convolutional1'].dW
+        grads['b1'] = self.layers['Convolutional1'].db
+        grads['W2'] = self.layers['Convolutional2'].dW
+        grads['b2'] = self.layers['Convolutional2'].db
+        # grads['gamma1'] = self.layers['BatchNorm1'].dgamma
+        # grads['beta1'] = self.layers['BatchNorm1'].dbeta
+        grads['W3'] = self.layers['Affine1'].dW
+        grads['b3'] = self.layers['Affine1'].db
+        grads['W4'] = self.layers['Affine2'].dW
+        grads['b4'] = self.layers['Affine2'].db
+
 
         return grads

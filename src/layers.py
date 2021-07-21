@@ -1,4 +1,5 @@
 # coding: utf-8
+from numpy.core.fromnumeric import shape
 from .functions import *
 import numpy as np
 
@@ -49,25 +50,121 @@ class Convolutional:
         dx = col2im_indices(dx_col, x.shape, h_filter, w_filter, stride=self.stride, padding=self.padding)
         return dx
 
+
 class MaxPooling:
-    def __init__(self):
-        pass
+    def __init__(self, size = 2, padding = 0, stride = 2):
+        self.size = size
+        self.padding = padding
+        self.stride = stride
 
-    def forward(self):
-        pass
+        self.cache = None
 
-    def backward(self):
-        pass
+    def forward(self, X):
+        N, C, H, W = X.shape
+        h_out = int((H - self.size)/self.stride + 1)
+        w_out = int((W - self.size)/self.stride + 1)
+
+        X_reshape = X.reshape(N*C, 1, H, W)
+        X_col = im2col_indices(X_reshape, self.size, self.size, padding=self.padding, stride=self.stride)
+
+        max_idx = np.argmax(X_col, axis=0)
+        out = X_col[max_idx, range(max_idx.size)]
+
+        out = out.reshape(h_out, w_out, N, C)
+        out = out.transpose(2, 3, 0, 1)
+
+        self.cache = (X, X_col, max_idx)
+        return out
+
+    def backward(self, dout):
+        X, X_col, max_idx = self.cache
+        N, C, H, W = X.shape
+
+        dX_col = np.zeros_like(X_col)
+        dout_col = dout.transpose(2, 3, 0, 1).ravel()
+
+        dX_col[max_idx, range(dout_col.size)] = dout_col
+
+        dx = col2im_indices(dX_col, (N*C, 1, H, W), self.size, self.size, padding=self.padding, stride=self.stride)
+        dx = dx.reshape(X.shape)
+        return dx
 
 class BatchNorm:
-    def __init__(self):
-        pass
+    def __init__(self, gamma, beta):
+        self.gamma = gamma
+        self.beta = beta
 
-    def forward(sef):
-        pass
+        self.cache = None
+        self.dgamma = None
+        self.dbeta = None
+    def forward(self, x):
+        if (len(x.shape)) == 2:
+            # Mean
+            mean = np.mean(x, axis=0)
+            # Variance
+            var = np.var(x, axis=0)
 
-    def backward(self):
-        pass
+            # Normalize
+            x_norm = (x - mean)*1.0/np.sqrt(var + 1e-12)     
+            # Scale
+            y = self.gamma * x_norm + self.beta
+
+        elif len(x.shape) == 4:
+            N, C, H, W = x.shape
+            # Mean
+            mean = np.mean(x, axis=(0,2,3))
+            # Variance
+            var = np.var(x, axis=(0,2,3))
+            # Normalize
+            x_norm = (x - mean.reshape((1, C, 1, 1)))*1.0/np.sqrt(var.reshape((1, C, 1, 1)) + 1e-12)     
+            # Scale
+            y = self.gamma.reshape((1, C, 1, 1)) * x_norm + self.beta.reshape((1, C, 1, 1))
+
+        self.cache = (mean, var, x, x_norm)
+        return y
+
+    def backward(self, dy):
+        mean, var, x, x_norm = self.cache
+        if (len(x.shape)) == 2:
+            m, _ = dy.shape
+            std = 1/np.sqrt(var + 1e-12)
+
+            dx_norm = dy * self.gamma
+            dvar = np.sum(dx_norm*(x-mean))*(-1/2)*(var+1e-12)**(-3/2)
+            dmean = np.sum(dy*-std, axis=0) + dvar*np.mean(-2*(x-mean), axis =0)
+
+            dx = dx_norm*std + dvar*(x-mean)/m + dmean/m
+            dgamma = np.sum(dy*x_norm)
+            dbeta = np.sum(dy, axis=0)
+
+            self.dgamma = dgamma
+            self.dbeta = dbeta
+
+        elif (len(x.shape)) == 4:
+            _, C, _, _ = dy.shape
+            # print(x.shape, x_norm.shape)
+            mean_rs = mean.reshape((1, C, 1, 1))
+            var_rs = var.reshape((1, C, 1, 1))
+
+            std = 1/np.sqrt(var_rs + 1e-12)
+            # print(mean_rs.shape, var_rs.shape, std.shape)
+
+            dx_norm = dy * self.gamma
+            # print((np.sum(dx_norm*(x-mean_rs))*(-1/2)*(var_rs+1e-12)**(-3/2)).shape)
+            dvar = np.sum(dx_norm*(x-mean_rs))*(-1/2)*(var_rs+1e-12)**(-3/2)
+            dmean = np.sum(dy)*-std + dvar*-2*np.mean(x-mean_rs)
+            # print(dx_norm.shape, dvar.shape, dmean.shape)
+
+            dx = dx_norm*std + dvar*2*(x-mean_rs)/C + dmean/C
+            dgamma = np.sum(dy*x_norm)
+            dbeta = np.sum(dy)
+            # print(dx.shape, dgamma.shape, dbeta.shape)
+
+            self.dgamma = dgamma
+            self.dbeta = dbeta
+
+        return dx
+
 
 class Flatten:
     def __init__(self):
@@ -177,7 +274,7 @@ class Dropout:
     """
     http://arxiv.org/abs/1207.0580
     """
-    def __init__(self, dropout_ratio=0.2):
+    def __init__(self, dropout_ratio=0.5):
         self.dropout_ratio = dropout_ratio
         self.mask = None
 
